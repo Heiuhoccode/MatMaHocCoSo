@@ -1,7 +1,9 @@
 from Crypto.Cipher import DES
-from Crypto.Util.Padding import pad, unpad
+import itertools
 import os
-import itertools, binascii
+import binascii
+from Crypto.Util.Padding import *
+
 
 def encrypt_des(plaintext, key):
     cipher = DES.new(key, DES.MODE_ECB)
@@ -11,45 +13,45 @@ def decrypt_des(ciphertext, key):
     cipher = DES.new(key, DES.MODE_ECB)
     return unpad(cipher.decrypt(ciphertext), DES.block_size)
 
-def generate_padded_combinations(n):
-    chars = "0123456789abcdef"
-    for comb in itertools.product(chars, repeat=n):
-        yield "".join(comb).zfill(16)
-
 # Giả sử ta biết một phần của plaintext
 known_plaintext = b"HelloDES"
-key_space = 2**22  # Giảm phạm vi thử nghiệm
-print("Tổng số khóa thử nghiệm:", key_space)
+key_space = 2**22  # Giảm phạm vi thử nghiệm để tiết kiệm thời gian
+
+
 
 # Nhập khóa từ người dùng (16 ký tự hex)
 user_input = input("Nhập khóa DES (16 ký tự hex): ").strip()
 
-# Kiểm tra độ dài và chuyển đổi sang bytes
+# Kiểm tra độ dài và định dạng hợp lệ
 if len(user_input) != 16 or not all(c in "0123456789abcdefABCDEF" for c in user_input):
     print("❌ Lỗi: Khóa phải có đúng 16 ký tự hex!")
     exit()
 
-print("✅ Khóa đã nhập:", user_input)  # In lại để kiểm tr
+# Chuyển đổi từ hex sang bytes
+true_key = bytes.fromhex(user_input)
 
-ciphertext = encrypt_des(known_plaintext, user_input.encode("utf-8"))
+# Hiển thị khóa đã nhập
+print("✅ Khóa đã nhập:", true_key.hex())
+
+# Mã hóa với khóa đã nhập
+ciphertext = encrypt_des(known_plaintext, true_key)
+
+# Hiển thị ciphertext
+print("Ciphertext:", ciphertext.hex())
+
 
 print("Thử tấn công brute-force...")
-
-count = 0  # Bộ đếm số lần thử
-for temp_key in generate_padded_combinations(2):
-    print(temp_key)
-    temp_key = temp_key.encode("utf-8")  # Chỉ lấy 8 byte cho DES
-    # print(temp_key.hex())
+count=0
+for i in range(key_space):
+    brute_key = i.to_bytes(8, byteorder='big')  # Chuyển số thành khóa 8 byte
     try:
-        decrypted = decrypt_des(ciphertext, temp_key)
+        decrypted = decrypt_des(ciphertext, brute_key)
         if decrypted == known_plaintext:
-            print("🔑 Khóa tìm được:", temp_key.hex())
+            print("🔑 Khóa tìm được:", brute_key.hex())
             break
+        # print(brute_key.hex())
     except:
-        pass  # Bỏ qua lỗi giải mã (nếu có)
-
-    # count += 1
-    # if count % 10000 == 0:
-    #     print(f"🔄 Đã thử {count} khóa...")  # In sau mỗi 10,000 lần thử
-
-print("🚀 Kết thúc brute-force.")
+        continue
+    count += 1
+    if count % 1000 == 0:
+        print(f"🔄 Đã thử {count} khóa...")  # In sau mỗi 10,000 lần thử
