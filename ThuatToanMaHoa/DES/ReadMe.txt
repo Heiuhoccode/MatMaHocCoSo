@@ -2,7 +2,7 @@ Mã hóa và Giải mã file âm thanh, file hình ảnh, file văn bản theo t
 ***
 File âm thanh chuẩn bị: HappyBirthday.wav
 File hình ảnh chuẩn bị: input.png
-File âm thanh chuẩn bị: input.txt
+File văn bản chuẩn bị: input.txt
 File mã hóa: Encode_sound.py
 File giải mã: Decode_sound.py
 ***
