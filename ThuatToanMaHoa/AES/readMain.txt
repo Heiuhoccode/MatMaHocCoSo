@@ -1,0 +1,6 @@
+# Dùng thư viện có sẵn cho AES: Crypto.Cipher
+# Dùng thư viện base64, hashlib
+# 3 byte dữ liệu <=> 4 kí tự trong base64 (16byte key = 24 kí tự in ra)
+# Chế độ AES-EAX: - nonce: làm cho mỗi lần mã hóa là duy nhất, ngay cả khi plaintext và key giống nhau.
+                  - tag: Là một chữ ký xác thực, giúp kiểm tra xem dữ liệu có bị sửa đổi trong quá trình truyền không.
+                  - Chế độ này sẽ tự động xử lý việc chia nhỏ và mã hóa dữ liệu mà không yêu cầu bạn phải làm padding. Tuy nhiên, dữ liệu sẽ được chia thành các khối 16 byte (đây là kích thước khối chuẩn của AES),
