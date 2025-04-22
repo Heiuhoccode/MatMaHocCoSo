@@ -1,122 +1,177 @@
-import random
 import wave
 import os
 
+class A51:
+    def __init__(self, key, frame_number):
+        """
+        Initializes the A5/1 cipher with the given key and frame number.
 
-class TinyA51:
-    def __init__(self, key_x, key_y, key_z):
-        self.X = [int(b) for b in key_x]
-        self.Y = [int(b) for b in key_y]
-        self.Z = [int(b) for b in key_z]
+        Args:
+            key (str): The 64-bit key as a binary string.
+            frame_number (str): The 22-bit frame number as a binary string.
+        """
+        if len(key) != 64 or any(c not in '01' for c in key):
+            raise ValueError("Key must be a 64-bit binary string")
+        if len(frame_number) != 22 or any(c not in '01' for c in frame_number):
+            raise ValueError("Frame number must be a 22-bit binary string")
 
-    def get_majority(self, x, y, z):
-        return 1 if (x + y + z) > 1 else 0
+        self.key = [int(bit) for bit in key]
+        self.frame_number = [int(bit) for bit in frame_number]
 
-    def step(self):
-        majority = self.get_majority(self.X[1], self.Y[3], self.Z[3])
-        if self.X[1] == majority:
-            new_x = self.X[2] ^ self.X[4] ^ self.X[5]
-            self.X = [new_x] + self.X[:-1]
-        if self.Y[3] == majority:
-            new_y = self.Y[6] ^ self.Y[7]
-            self.Y = [new_y] + self.Y[:-1]
-        if self.Z[3] == majority:
-            new_z = self.Z[2] ^ self.Z[7] ^ self.Z[8]
-            self.Z = [new_z] + self.Z[:-1]
+        # Initialize registers
+        self.r1 = [0] * 19  # 19 bits
+        self.r2 = [0] * 22  # 22 bits
+        self.r3 = [0] * 23  # 23 bits
 
-    def get_keystream(self, length):
+        self._initialize_registers()
+
+    def _clock_register(self, register, taps, feedback_bits):
+        """
+        Clocks a register based on the given taps and feedback bits.
+
+        Args:
+            register (list): The register to clock.
+            taps (list): The tap positions (indices) for majority function.
+            feedback_bits (list): The tap positions (indices) for feedback calculation.
+
+        Returns:
+            int: The output bit.
+        """
+        majority = self._majority([register[i] for i in taps])
+        if register[taps[0]] == majority:
+            feedback = 0
+            for bit_index in feedback_bits:
+                feedback ^= register[bit_index]
+            new_bit = feedback
+            register[:] = [new_bit] + register[:-1]  # Shift with new bit
+        return register[-1]
+
+    def _majority(self, bits):
+        """Calculates the majority bit."""
+        return 1 if sum(bits) >= len(bits) / 2 else 0
+
+    def _initialize_registers(self):
+        """Initializes the registers with the key and frame number."""
+
+        # 1. Load key into registers
+        self.r1 = [int(bit) for bit in self.key[:19]]
+        self.r2 = [int(bit) for bit in self.key[19:19 + 22]]
+        self.r3 = [int(bit) for bit in self.key[19 + 22:]]
+
+        # 2. Mix key bits into registers
+        for i in range(64):
+            self._clock_registers_all()
+
+        # 3. Mix frame number into registers
+        for i in range(22):
+            feedback = self.frame_number[i] ^ self.r1[18] ^ self.r2[21] ^ self.r3[22]
+            self.r1[:] = [feedback] + self.r1[:-1]
+            self.r2[:] = [feedback] + self.r2[:-1]
+            self.r3[:] = [feedback] + self.r3[:-1]
+            self._clock_registers_all()
+
+    def _clock_registers_all(self):
+        """Clocks all three registers based on the majority function."""
+
+        majority = self._majority([self.r1[8], self.r2[10], self.r3[10]])
+        if self.r1[8] == majority:
+            feedback = self.r1[13] ^ self.r1[16] ^ self.r1[17] ^ self.r1[18]
+            self.r1[:] = [feedback] + self.r1[:-1]
+        if self.r2[10] == majority:
+            feedback = self.r2[20] ^ self.r2[21]
+            self.r2[:] = [feedback] + self.r2[:-1]
+        if self.r3[10] == majority:
+            feedback = self.r3[20] ^ self.r3[21] ^ self.r3[22]
+            self.r3[:] = [feedback] + self.r3[:-1]
+
+    def generate_keystream(self, length):
+        """
+        Generates the keystream of the specified length.
+
+        Args:
+            length (int): The length of the keystream to generate (in bits).
+
+        Returns:
+            list: The generated keystream as a list of integers (0 or 1).
+        """
         keystream = []
         for _ in range(length):
-            self.step()
-            keystream.append(self.X[5] ^ self.Y[7] ^ self.Z[8])
+            self._clock_registers_all()
+            keystream.append(self.r1[18] ^ self.r2[21] ^ self.r3[22])
         return keystream
 
-    def encrypt_decrypt(self, binary_data):
-        keystream = self.get_keystream(len(binary_data))
-        return [b ^ k for b, k in zip(binary_data, keystream)]
+    def encrypt_decrypt(self, data):
+        """
+        Encrypts or decrypts the given binary data.
+
+        Args:
+            data (list): The binary data to encrypt/decrypt (list of integers 0 or 1).
+
+        Returns:
+            list: The encrypted/decrypted data.
+        """
+        keystream = self.generate_keystream(len(data))
+        return [bit ^ keystream[i] for i, bit in enumerate(data)]
 
 
-# Chuyển file WAV thành chuỗi nhị phân
+# Utility functions (similar to your original code)
 def wav_to_binary(input_wav):
     with wave.open(input_wav, 'rb') as wav:
         frames = wav.readframes(wav.getnframes())
         binary_data = ''.join(format(byte, '08b') for byte in frames)
     return binary_data
 
-
-# Lưu chuỗi nhị phân vào file
-def save_binary_file(binary_data, output_file):
-    with open(output_file, "w") as f:
-        f.write(binary_data)
-
-
-# Đọc file nhị phân từ file
-def read_binary_file(input_file):
-    with open(input_file, "r") as f:
-        return f.read().strip()
-
-
-# Chuyển chuỗi nhị phân về file WAV
 def binary_to_wav(binary_data, output_wav, params):
     byte_data = bytearray(int(binary_data[i:i + 8], 2) for i in range(0, len(binary_data), 8))
     with wave.open(output_wav, 'wb') as wav:
         wav.setparams(params)
         wav.writeframes(byte_data)
 
+def save_binary_file(binary_data, output_file):
+    with open(output_file, "w") as f:
+        f.write(binary_data)
 
-# Mã hóa file WAV và lưu file nhị phân
 def encrypt_wav(input_wav, output_wav, bin_file, cipher):
     with wave.open(input_wav, 'rb') as wav:
         params = wav.getparams()
     binary_data = [int(b) for b in wav_to_binary(input_wav)]
     encrypted_data = cipher.encrypt_decrypt(binary_data)
-
-    # Lưu file nhị phân của quá trình mã hóa
     save_binary_file(''.join(map(str, encrypted_data)), bin_file)
-
     binary_to_wav(''.join(map(str, encrypted_data)), output_wav, params)
-    print(f"Ma haa file {input_wav} -> {output_wav} ({bin_file})")
+    print(f"Encrypt WAV: {input_wav} -> {output_wav} ({bin_file})")
 
-
-# Giải mã file WAV và lưu file nhị phân
 def decrypt_wav(input_wav, output_wav, bin_file, cipher):
     with wave.open(input_wav, 'rb') as wav:
         params = wav.getparams()
     binary_data = [int(b) for b in wav_to_binary(input_wav)]
     decrypted_data = cipher.encrypt_decrypt(binary_data)
-
-    # Lưu file nhị phân của quá trình giải mã
     save_binary_file(''.join(map(str, decrypted_data)), bin_file)
-
     binary_to_wav(''.join(map(str, decrypted_data)), output_wav, params)
-    print(f"Giai ma file {input_wav} -> {output_wav} ({bin_file})")
+    print(f"Decrypt WAV: {input_wav} -> {output_wav} ({bin_file})")
 
-
-# ----------- Chạy Tiny A5/1 với file WAV -----------
 if __name__ == "__main__":
-    key_x = "100101"
-    key_y = "01001100"
-    key_z = "100110000"
+    key = "0123456789012345678901234567890123456789012345678901234567890123"  # 64-bit key (binary string)
+    frame_number = "0123456789012345678901"  # 22-bit frame number (binary string)
 
-    cipher = TinyA51(key_x, key_y, key_z)
+    # Convert hex to binary
+    key_bin = bin(int(key, 16))[2:].zfill(len(key) * 4)
+    frame_number_bin = bin(int(frame_number, 16))[2:].zfill(len(frame_number) * 4)
 
-    input_wav = r"D:\VSCodePython\A5\A5\input.wav"  # Doc file am thanh goc .wav
+    cipher = A51(key_bin, frame_number_bin)
+
+    input_wav = r"D:\VSCodePython\A5\A5\input.wav"
     encrypted_wav = "encrypted.wav"
     decrypted_wav = "decrypted.wav"
-    encrypted_bin = "encrypted.bin"  # Lưu file nhị phân mã hóa
-    decrypted_bin = "decrypted.bin"  # Lưu file nhị phân giải mã
+    encrypted_bin = "encrypted.bin"
+    decrypted_bin = "decrypted.bin"
 
     print()
-    # Neu khong su dung chuc nang ma hoa co the ghi chu!
     encrypt_wav(input_wav, encrypted_wav, encrypted_bin, cipher)
-    # Vi tri cua file ma hoa
-    print("File ma haa:", os.path.abspath(encrypted_wav))
-    print("File nhi phan ma haa:", os.path.abspath(encrypted_bin))
+    print("Encrypted WAV:", os.path.abspath(encrypted_wav))
+    print("Encrypted BIN:", os.path.abspath(encrypted_bin))
     print()
 
-    cipher = TinyA51(key_x, key_y, key_z)  # Reset lại bộ sinh khóa
-    # Neu khong su dung chuc nang giai ma co the ghi chu!
+    cipher = A51(key_bin, frame_number_bin)  # Re-initialize for decryption
     decrypt_wav(encrypted_wav, decrypted_wav, decrypted_bin, cipher)
-    # Vi tri cua file giai ma
-    print("File giai ma:", os.path.abspath(decrypted_wav))
-    print("File nhi phan giai ma:", os.path.abspath(decrypted_bin))
+    print("Decrypted WAV:", os.path.abspath(decrypted_wav))
+    print("Decrypted BIN:", os.path.abspath(decrypted_bin))
