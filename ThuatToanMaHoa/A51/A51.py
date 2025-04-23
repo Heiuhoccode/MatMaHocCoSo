@@ -157,7 +157,7 @@ if __name__ == "__main__":
 
     cipher = A51(key_bin, frame_number_bin)
 
-    input_wav = r"D:\VSCodePython\A5\A5\input.wav"
+    input_wav = r"G:\Nam3_Ki2\Mật mã học\MatMaHocCoSo\ThuatToanMaHoa\A51\scifi-ping-86790.wav"
     encrypted_wav = "encrypted.wav"
     decrypted_wav = "decrypted.wav"
     encrypted_bin = "encrypted.bin"
