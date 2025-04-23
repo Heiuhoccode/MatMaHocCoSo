@@ -1,5 +1,6 @@
 import wave
 import os
+import random
 
 class A51:
     def __init__(self, key, frame_number):
@@ -150,12 +151,9 @@ def decrypt_wav(input_wav, output_wav, bin_file, cipher):
     print(f"Decrypt WAV: {input_wav} -> {output_wav} ({bin_file})")
 
 if __name__ == "__main__":
-    key = "0123456789012345678901234567890123456789012345678901234567890123"  # 64-bit key (binary string)
-    frame_number = "0123456789012345678901"  # 22-bit frame number (binary string)
-
-    # Convert hex to binary
-    key_bin = bin(int(key, 16))[2:].zfill(len(key) * 4)
-    frame_number_bin = bin(int(frame_number, 16))[2:].zfill(len(frame_number) * 4)
+    key_length = 64
+    key_bin = ''.join(random.choice(['0', '1']) for _ in range(key_length))
+    frame_number_bin = ''.join(random.choice(['0', '1']) for _ in range(22))
 
     cipher = A51(key_bin, frame_number_bin)
 
