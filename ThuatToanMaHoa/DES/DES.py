@@ -1,105 +1,53 @@
 from Crypto.Cipher import DES
-import wave
-import os
-from PIL import Image
-import random
-import string
-class DES_Cipher:
-    def __init__(self, key):
-        if len(key) != 8:
-            raise ValueError("Key must be exactly 8 bytes long.")
-        self.key = key
-        self.cipher = DES.new(self.key, DES.MODE_ECB)
+from Crypto.Random import get_random_bytes
+import base64
+import hashlib
+import textwrap
 
-    def pad(self, data):
-        pad_len = 8 - (len(data) % 8)
-        return data + bytes([pad_len] * pad_len)
+# ===== HÀM CHUẨN HÓA KHÓA (8 byte cho DES) =====
+def get_des_key_from_input(user_key: str) -> bytes:
+    """
+    DES yêu cầu khoá đúng 8 byte.
+    Ta băm bằng SHA‑1 rồi lấy 8 byte đầu.
+    """
+    hashed = hashlib.sha1(user_key.encode()).digest()
+    return hashed[:8]   # 8byte → 56 bit hiệu dụng
 
-    def unpad(self, data):
-        return data[:-data[-1]]
+# ===== HÀM ĐỆM (PAD) VÀ BỎ ĐỆM (UNPAD) PKCS#5 =====
+def pkcs5_pad(data: bytes) -> bytes:
+    pad_len = 8 - (len(data) % 8)
+    return data + bytes([pad_len]) * pad_len
 
-    def encrypt(self, data):
-        padded_data = self.pad(data)
-        return self.cipher.encrypt(padded_data)
+def pkcs5_unpad(padded: bytes) -> bytes:
+    pad_len = padded[-1]
+    if not 1 <= pad_len <= 8:
+        raise ValueError("Sai padding")
+    return padded[:-pad_len]
 
-    def decrypt(self, data):
-        return self.unpad(self.cipher.decrypt(data))
+# ===== NHẬP TỪ NGƯỜI DÙNG =====
+plaintext_input = input("Nhập plaintext: ")
+key_input = input("Nhập key (chuỗi bất kỳ): ")
 
-# Đọc file và chuyển thành nhị phân
-def file_to_binary(file_path):
-    with open(file_path, 'rb') as f:
-        return f.read()
+# ===== XỬ LÝ =====
+plaintext = plaintext_input.encode()
+key = get_des_key_from_input(key_input)
 
-# Lưu nhị phân vào file
-def binary_to_file(binary_data, output_path):
-    with open(output_path, 'wb') as f:
-        f.write(binary_data)
+# ===== MÃ HÓA =====
+cipher = DES.new(key, DES.MODE_ECB)
+ciphertext = cipher.encrypt(pkcs5_pad(plaintext))
 
-# Xử lý file WAV
-def encrypt_wav(input_wav, output_wav, cipher):
-    with wave.open(input_wav, 'rb') as wav:
-        params = wav.getparams()
-        frames = wav.readframes(wav.getnframes())
+# ===== HIỂN THỊ KẾT QUẢ =====
+print("\n--- DỮ LIỆU ĐÃ MÃ HÓA (DES/ECB) ---")
+print("Ciphertext:", base64.b64encode(ciphertext).decode())
+print("Key :", base64.b64encode(key).decode())
 
-    encrypted_data = cipher.encrypt(frames)
-    with wave.open(output_wav, 'wb') as wav:
-        wav.setparams(params)
-        wav.writeframes(encrypted_data)
+# ===== GIẢI MÃ =====
+cipher_dec = DES.new(key, DES.MODE_ECB)
+decrypted_padded = cipher_dec.decrypt(ciphertext)
 
-    print(f"Đã mã hóa WAV: {input_wav} -> {output_wav}")
-
-def decrypt_wav(input_wav, output_wav, cipher):
-    with wave.open(input_wav, 'rb') as wav:
-        params = wav.getparams()
-        frames = wav.readframes(wav.getnframes())
-
-    decrypted_data = cipher.decrypt(frames)
-    with wave.open(output_wav, 'wb') as wav:
-        wav.setparams(params)
-        wav.writeframes(decrypted_data)
-
-    print(f"Đã giải mã WAV: {input_wav} -> {output_wav}")
-
-# Xử lý file ảnh
-def encrypt_image(input_image, output_image, cipher):
-    img_data = file_to_binary(input_image)
-    encrypted_data = cipher.encrypt(img_data)
-    binary_to_file(encrypted_data, output_image)
-    print(f"Đã mã hóa ảnh: {input_image} -> {output_image}")
-
-def decrypt_image(input_image, output_image, cipher):
-    img_data = file_to_binary(input_image)
-    decrypted_data = cipher.decrypt(img_data)
-    binary_to_file(decrypted_data, output_image)
-    print(f"Đã giải mã ảnh: {input_image} -> {output_image}")
-
-# Xử lý file văn bản
-def encrypt_text(input_text, output_text, cipher):
-    text_data = file_to_binary(input_text)
-    encrypted_data = cipher.encrypt(text_data)
-    binary_to_file(encrypted_data, output_text)
-    print(f"Đã mã hóa văn bản: {input_text} -> {output_text}")
-
-def decrypt_text(input_text, output_text, cipher):
-    text_data = file_to_binary(input_text)
-    decrypted_data = cipher.decrypt(text_data)
-    binary_to_file(decrypted_data, output_text)
-    print(f"Đã giải mã văn bản: {input_text} -> {output_text}")
-
-# Chạy DES với nhiều loại file 
-
-# key = b"12345678"  # Khóa DES phải có độ dài 8 byte
-key = ''.join(random.choices(string.ascii_letters + string.digits, k=8)).encode('utf-8')
-cipher = DES_Cipher(key)
-
-# Xử lý file âm thanh WAV
-encrypt_wav("HappyBirthday.wav", "encrypted.wav", cipher)
-decrypt_wav("encrypted.wav", "decrypted.wav", cipher)
-
-# Xử lý file ảnh PNG
-encrypt_image("input.png", "encrypted.png", cipher)
-decrypt_image("encrypted.png", "decrypted.png", cipher)
-
-# Xử lý file văn bản TXT
-encrypt_text("input.txt", "encrypted.txt", cipher)
-decrypt_text("encrypted.txt", "decrypted.txt", cipher)
+try:
+    decrypted = pkcs5_unpad(decrypted_padded).decode()
+    print("\n--- DỮ LIỆU SAU GIẢI MÃ ---")
+    print("Đã giải mã:", decrypted)
+except (ValueError, UnicodeDecodeError):
+    print("Giải mã thất bại hoặc dữ liệu đã bị chỉnh sửa!")
