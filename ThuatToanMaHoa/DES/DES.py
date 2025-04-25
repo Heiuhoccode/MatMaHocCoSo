@@ -38,8 +38,8 @@ ciphertext = cipher.encrypt(pkcs5_pad(plaintext))
 
 # ===== HIỂN THỊ KẾT QUẢ =====
 print("\n--- DỮ LIỆU ĐÃ MÃ HÓA (DES/ECB) ---")
-print("Ciphertext:", base64.b64encode(ciphertext).decode())
-print("Key :", base64.b64encode(key).decode())
+print("Ciphertext:", ciphertext.hex())
+print("Key :", key.hex())
 
 # ===== GIẢI MÃ =====
 cipher_dec = DES.new(key, DES.MODE_ECB)
