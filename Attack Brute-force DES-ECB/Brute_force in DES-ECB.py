@@ -31,6 +31,8 @@ def hex_to_decimal(hex_key):
     return decimal_numbers
 
 if __name__ == "__main__":
+    print("CipherText:", end=' ')
+    cipherText = input()
     print("Key:",end=' ')
     keyInput = input()
     hex_key, leak_hex_key = [],["***" for i in range(8)]
@@ -69,7 +71,7 @@ if __name__ == "__main__":
                             j+=1
                     print("Try key = ", key.hex())
                     cipher = DES.new(key, DES.MODE_ECB)
-                    plaintext = cipher.decrypt(bytes.fromhex("bae64ae54e2447632089c81790c95dd9"))
+                    plaintext = cipher.decrypt(bytes.fromhex(cipherText))
                     match = search("[A-Z]{1}[0-9]{2}[A-Z]{4}[0-9]{3}", plaintext.decode())
 
                     if match:
