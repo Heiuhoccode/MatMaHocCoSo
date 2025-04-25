@@ -37,9 +37,10 @@ cipher = DES.new(key, DES.MODE_ECB)
 ciphertext = cipher.encrypt(pkcs5_pad(plaintext))
 
 # ===== HIỂN THỊ KẾT QUẢ =====
-print("\n--- DỮ LIỆU ĐÃ MÃ HÓA (DES/ECB) ---")
+print("\n--- DỮ LIỆU ĐÃ MÃ HÓA ---")
+print("---      DES/ECB      ---")
 print("Ciphertext:", ciphertext.hex())
-print("Key :", key.hex())
+print("Key       :", key.hex())
 
 # ===== GIẢI MÃ =====
 cipher_dec = DES.new(key, DES.MODE_ECB)

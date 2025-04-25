@@ -84,3 +84,5 @@ if __name__ == "__main__":
                     collect()
         case "NO"|"N"|"n"|"no":
             exit()
+        case _:
+            print("Error")

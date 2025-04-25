@@ -2,9 +2,9 @@ from Crypto.Cipher import AES
 import base64
 import hashlib
 
-# ===== HÀM CHUẨN HÓA KHÓA (16 byte cho AES‑128) =====
+# ===== HÀM CHUẨN HÓA KHÓA (16byte cho AES‑128) =====
 def get_aes_key_from_input(user_key: str) -> bytes:
-    # Dùng SHA‑256 → 32 byte, lấy 16 byte đầu
+    # Dùng SHA‑256 → 32byte, lấy 16byte đầu
     return hashlib.sha256(user_key.encode()).digest()[:16]
 
 # ===== HÀM PAD / UNPAD PKCS#7 =====
@@ -31,9 +31,11 @@ cipher     = AES.new(key, AES.MODE_ECB)
 ciphertext = cipher.encrypt(pkcs7_pad(plaintext))
 
 # ===== HIỂN THỊ KẾT QUẢ =====
-print("\n--- DỮ LIỆU ĐÃ MÃ HÓA (AES/ECB) ---")
-print("Ciphertext:", base64.b64encode(ciphertext).decode())
-print("Key       :", base64.b64encode(key).decode())
+# hiện thị theo hệ thập lục phân
+print("\n--- DỮ LIỆU ĐÃ MÃ HÓA ---")
+print("---      AES/ECB      ---")
+print("Ciphertext:", ciphertext.hex())
+print("Key       :", key.hex())
 
 # ===== GIẢI MÃ =====
 cipher_dec       = AES.new(key, AES.MODE_ECB)
