@@ -1,0 +1,27 @@
+# Mô phỏng tấn công CPA2 vào AES-ECB đơn giản
+
+#------------------
+# CPA2:
+#   Kẻ tấn công gửi các plaintext thích ứng đến oracle mã hóa và nhận lại plaintext.
+#   Các plaintext thích ứng tiếp theo được chọn dựa trên phân tích ciphertext từ lần gọi trước.
+#   Mục đích: khôi phục từng byte của chuỗi bí mật.
+
+#------------------
+# LỖ HỔNG AES-ECB:
+#       Mã hóa mỗi khối plaintext 16 byte độc lập với cùng 1 khóa.
+#       Các khối plaintext giống nhau thì tạo ra các khôi ciphetext giống nhau.
+
+#------------------
+# KẺ TẤN CÔNG ĐÃ CÓ:
+#   Plaintext thích ứng (a_list, curr = known[1:]+c)
+#   Biết cấu trúc plaintext: {data=} + {target} + {secretInfo} + {padding}
+#   Biết độ dài của secretInfo
+#   Ciphertext từ oracle, đặc biệt là khối thứ hai (encrypted[16:32]).
+#   Ciphertext tham chiếu (correct_curr) chứa byte bí mật.
+#   Từ điển ánh xạ tạm thời (D) từ ciphertext khối thứ hai sang ký tự thử.
+#   Chuỗi bí mật từng phần, cuối cùng là toàn bộ (mysecrettoken123).
+
+#------------------
+# KẺ TẤN CÔNG KHÔNG CÓ:
+#   Khóa mã hóa.
+#   Chuỗi bí mật ban đầu.

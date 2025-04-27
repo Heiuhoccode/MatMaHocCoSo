@@ -1,51 +1,43 @@
-def rc4_encrypt_decrypt(key, data):
+from Crypto.Cipher import ARC4
+from Crypto.Random import get_random_bytes
+import hashlib
+import base64
+
+# ===== HÀM CHUẨN HÓA KHÓA (cho RC4) =====
+def get_rc4_key_from_input(user_key: str) -> bytes:
     """
-    Encrypts or decrypts data using the RC4 algorithm.
-
-    Args:
-        key (bytes): The encryption key (1 to 256 bytes).
-        data (bytes): The data to encrypt or decrypt.
-
-    Returns:
-        bytes: The encrypted or decrypted data.
+    RC4 chấp nhận khóa từ 1 đến 256 byte.
+    Ta băm bằng SHA-256 rồi lấy 16 byte (128 bit) để đảm bảo độ dài phù hợp.
     """
+    hashed = hashlib.sha256(user_key.encode()).digest()
+    return hashed[:16]  # Lấy 16 byte đầu
 
-    S = list(range(256))
-    T = []
-    key_length = len(key)
+# ===== NHẬP TỪ NGƯỜI DÙNG =====
+plaintext_input = input("Nhập plaintext: ")
+key_input = input("Nhập key (chuỗi bất kỳ): ")
 
-    # Key Scheduling Algorithm (KSA)
-    for i in range(256):
-        T.append(key[i % key_length])
+# ===== XỬ LÝ =====
+plaintext = plaintext_input.encode()
+key = get_rc4_key_from_input(key_input)
 
-    j = 0
-    for i in range(256):
-        j = (j + S[i] + T[i]) % 256
-        S[i], S[j] = S[j], S[i]  # Swap
+# ===== MÃ HÓA =====
+cipher = ARC4.new(key)
+# RC4 không cần padding vì là hệ mã luồng
+ciphertext = cipher.encrypt(plaintext)
 
-    # Pseudo-Random Generation Algorithm (PRGA)
-    i = 0
-    j = 0
-    result = bytearray()
+# ===== HIỂN THỊ KẾT QUẢ =====
+print("\n--- DỮ LIỆU ĐÃ MÃ HÓA ---")
+print("---      RC4      ---")
+print("Ciphertext:", ciphertext.hex())
+print("Key       :", key.hex())
 
-    for char in data:
-        i = (i + 1) % 256
-        j = (j + S[i]) % 256
-        S[i], S[j] = S[j], S[i]  # Swap
-        t = (S[i] + S[j]) % 256
-        k = S[t]
-        result.append(char ^ k)
+# ===== GIẢI MÃ =====
+cipher_dec = ARC4.new(key)
+decrypted = cipher_dec.decrypt(ciphertext)
 
-    return bytes(result)
-
-
-if __name__ == '__main__':
-    key = b'SecretKey'  # Key must be bytes
-    plaintext = b'This is a secret message.'  # Data must be bytes
-
-    ciphertext = rc4_encrypt_decrypt(key, plaintext)
-    print(f"Plaintext: {plaintext}")
-    print(f"Ciphertext: {ciphertext}")
-
-    decrypted_text = rc4_encrypt_decrypt(key, ciphertext)  # Decrypting with the same key
-    print(f"Decrypted text: {decrypted_text}")
+try:
+    decrypted_text = decrypted.decode()
+    print("\n--- DỮ LIỆU SAU GIẢI MÃ ---")
+    print("Đã giải mã:", decrypted_text)
+except UnicodeDecodeError:
+    print("Giải mã thất bại hoặc dữ liệu đã bị chỉnh sửa!")
