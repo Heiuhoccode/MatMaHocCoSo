@@ -25,4 +25,3 @@ Mục tiêu: hiểu sâu cơ chế hoạt động, hiện tượng lộ thông t
 
 ## Yêu cầu
 - Python 3.8+
-- Thư viện (có thể cài qua `requirements.txt`):
